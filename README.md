@@ -20,8 +20,8 @@ npm install mongoose
 
 Copy the plugin file to your project and register it with Fastify.
 
-Usage
-Basic Registration
+## Usage
+Basic Registration. use ```logger: true``` to display log info.
 
 ```js
 const fastify = require('fastify')({ logger: true });

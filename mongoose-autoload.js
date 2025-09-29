@@ -1,15 +1,15 @@
 const fp = require('fastify-plugin');
 const fs = require('fs');
 const path = require('path');
-let mongoose
+
+let mongoose;
 try {
   mongoose = require('mongoose');
-} catch(err) {
-  console.error('mongoose is not installed. Try npm install mongoose')
+} catch (err) {
+  throw new Error('mongoose is required but not installed. Run: npm install mongoose');
 }
 
 module.exports = fp(async function (fastify, options) {
-
   const {
     host = 'localhost',
     port = 27017,
@@ -27,25 +27,40 @@ module.exports = fp(async function (fastify, options) {
 
     const modelsPath = path.join(__dirname, schemasFolder);
 
-    fs.readdirSync(modelsPath).forEach(file => {
-      const fullPath = path.join(modelsPath, file);
+    if (!fs.existsSync(modelsPath)) {
+      throw new Error(`Schema folder not found: ${modelsPath}. Please create the folder and add your mongoose schemas.`);
+    }
 
-      if (fs.statSync(fullPath).isDirectory()) return; // skip directories
+    fs.readdirSync(modelsPath)
+      .filter(file => file.endsWith('.js') && !file.startsWith('.'))
+      .forEach(file => {
+        const fullPath = path.join(modelsPath, file);
 
-      const { name, schema } = require(fullPath);
+        if (fs.statSync(fullPath).isDirectory()) return;
 
+        try {
+          const { name, schema } = require(fullPath);
 
-      if (!mongoose.models[name]) {
-        fastify.log.info(`🔥 Creating ${name} model`);
-        mongoose.model(name, schema);
-      }
-    });
+          if (!name || !schema) {
+            fastify.log.warn(`⚠️ Skipping ${file}: missing name or schema export`);
+            return;
+          }
+
+          if (!mongoose.models[name]) {
+            fastify.log.info(`🔥 Creating ${name} model`);
+            mongoose.model(name, schema);
+          } else {
+            fastify.log.info(`ℹ️ Model ${name} already exists, skipping`);
+          }
+        } catch (err) {
+          console.error(`❌ Error loading schema from ${file}:`, err.message);
+        }
+      });
 
   } catch (err) {
-    fastify.log.error(`❌ Error on mongoose loading`);
-    throw err; // Stop loading process
+    console.error(`❌ Error on mongoose loading:`, err.message);
+    throw err;
   }
 
-  // Add mongoose decorate
   fastify.decorate('db', mongoose);
 });
