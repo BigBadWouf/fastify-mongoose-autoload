@@ -23,7 +23,7 @@ module.exports = fp(async function (fastify, options) {
 
   try {
     await mongoose.connect(mongoUri);
-    fastify.log.info('✅ MongoDB connected');
+    fastify.log.info?.('✅ MongoDB connected');
 
     const modelsPath = path.join(__dirname, schemasFolder);
 
@@ -42,15 +42,15 @@ module.exports = fp(async function (fastify, options) {
           const { name, schema } = require(fullPath);
 
           if (!name || !schema) {
-            fastify.log.warn(`⚠️ Skipping ${file}: missing name or schema export`);
+            fastify.log.warn?.(`⚠️ Skipping ${file}: missing name or schema export`);
             return;
           }
 
           if (!mongoose.models[name]) {
-            fastify.log.info(`🔥 Creating ${name} model`);
+            fastify.log.info?.(`🔥 Creating ${name} model`);
             mongoose.model(name, schema);
           } else {
-            fastify.log.info(`ℹ️ Model ${name} already exists, skipping`);
+            fastify.log.info?.(`ℹ️ Model ${name} already exists, skipping`);
           }
         } catch (err) {
           console.error(`❌ Error loading schema from ${file}:`, err.message);
